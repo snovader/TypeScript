@@ -101,7 +101,7 @@ import { value } from "./dep.js"; export const result = value;`,
 		"/src/dep.ts": "export const value = 1;",
 		"/src/node_modules/@types/dep/index.d.ts": "export {};",
 	}
-	host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+	host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 	config, diagnostics := tsoptions.GetParsedCommandLineOfConfigFile("/src/tsconfig.json", nil, nil, host, nil)
 	assert.Equal(t, len(diagnostics), 0)
 	var pools, resolvers int
@@ -119,7 +119,7 @@ import { value } from "./dep.js"; export const result = value;`,
 			resolvers++
 			resolverFiles := maps.Clone(files)
 			resolverFiles["/factory-only/package.json"] = `{"name":"factory-host"}`
-			options.Host = NewCompilerHost("/", vfstest.FromMap(resolverFiles, true), "", nil, nil, nil)
+			options.Host = NewCompilerHost("/", vfstest.FromMap(resolverFiles, true), "", nil, nil, nil, nil)
 			return module.NewResolver(options)
 		},
 	})
@@ -136,7 +136,7 @@ import { value } from "./dep.js"; export const result = value;`,
 	newFiles := maps.Clone(files)
 	newFiles["/src/index.ts"] = "\n" + files["/src/index.ts"].(string)
 	newFiles["/probe/package.json"] = `{"name":"new-host"}`
-	newHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil)
+	newHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil, nil)
 	cloned, changed, reused := p.ReuseProgram("/src/index.ts", newHost,
 		func(p *Program) CheckerPool {
 			pools++
@@ -176,7 +176,7 @@ import { value } from "./dep.js"; export const result = value;`,
 
 	newFiles["/src/index.ts"] = `import "./other.js";`
 	newFiles["/src/other.ts"] = "export {};"
-	rebuildHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil)
+	rebuildHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil, nil)
 	rebuilt, _, reused := p.UpdateProgram("/src/index.ts", rebuildHost, nil, nil)
 	assert.Assert(t, !reused)
 	assert.Assert(t, rebuilt.compilerCheckerPool != nil)
@@ -201,7 +201,7 @@ func TestClonedProgramProjectReferenceResolution(t *testing.T) {
 				"/reference/package.json":     `{"name":"reference","version":"1.0.0","types":"dist/index.d.ts"}`,
 				"/reference/index.ts":         "export const value = 1;",
 			}
-			host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+			host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 			config, diagnostics := tsoptions.GetParsedCommandLineOfConfigFile("/src/tsconfig.json", &core.CompilerOptions{
 				PreserveSymlinks: core.BoolToTristate(preserveSymlinks),
 			}, nil, host, nil)
@@ -212,7 +212,7 @@ func TestClonedProgramProjectReferenceResolution(t *testing.T) {
 			newFiles := maps.Clone(files)
 			newFiles["/src/index.ts"] = "\n" + files["/src/index.ts"].(string)
 			newFiles["/probe/package.json"] = `{"name":"new-host"}`
-			newHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil)
+			newHost := NewCompilerHost("/", vfstest.FromMap(newFiles, true), "", nil, nil, nil, nil)
 			cloned, _, reused := p.ReuseProgram("/src/index.ts", newHost, nil, nil)
 			assert.Assert(t, reused)
 			assert.Equal(t, cloned.projectReferenceFileMapper, p.projectReferenceFileMapper)
@@ -466,7 +466,7 @@ func TestProgram(t *testing.T) {
 						CompilerOptions: &opts,
 					},
 				},
-				Host: NewCompilerHost("c:/dev/src", fs, bundled.LibPath(), nil, nil, nil),
+				Host: NewCompilerHost("c:/dev/src", fs, bundled.LibPath(), nil, nil, nil, nil),
 			})
 
 			actualFiles := []string{}
@@ -497,7 +497,7 @@ func TestImportSourceProgram(t *testing.T) {
 				"/src/index.ts":      content,
 				"/src/a.ts":          "export const a = 1;",
 			}
-			host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+			host := NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 			config, diagnostics := tsoptions.GetParsedCommandLineOfConfigFile("/src/tsconfig.json", nil, nil, host, nil)
 			assert.Equal(t, len(diagnostics), 0)
 			program := NewProgram(ProgramOptions{Config: config, Host: host})
@@ -508,7 +508,7 @@ func TestImportSourceProgram(t *testing.T) {
 			assert.Equal(t, program.collectPackageNames().unresolved.Len(), 0)
 
 			files["/src/index.ts"] = test.evaluation + strings.TrimPrefix(content, test.source)
-			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 			program, file, reused := program.UpdateProgram("/src/index.ts", host, nil, nil)
 			assert.Assert(t, !reused)
 			assert.Assert(t, program.GetSourceFile("/src/a.ts") != nil)
@@ -518,13 +518,13 @@ func TestImportSourceProgram(t *testing.T) {
 			}
 
 			files["/src/index.ts"] = content
-			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 			program, _, reused = program.UpdateProgram("/src/index.ts", host, nil, nil)
 			assert.Assert(t, !reused)
 			assert.Assert(t, program.GetSourceFile("/src/a.ts") == nil)
 
 			files["/src/index.ts"] = test.evaluation + content
-			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil)
+			host = NewCompilerHost("/", vfstest.FromMap(files, true), "", nil, nil, nil, nil)
 			program = NewProgram(ProgramOptions{Config: config, Host: host})
 			file = program.GetSourceFile("/src/index.ts")
 			for _, specifier := range file.Imports() {
@@ -562,7 +562,7 @@ func TestIncludeProcessorDiagnosticsWithMissingFileCasing(t *testing.T) {
 				CompilerOptions: &opts,
 			},
 		},
-		Host: NewCompilerHost("/", fs, bundled.LibPath(), nil, nil, nil),
+		Host: NewCompilerHost("/", fs, bundled.LibPath(), nil, nil, nil, nil),
 	})
 
 	// GetProgramDiagnostics triggers getDiagnostics which processes all
@@ -604,7 +604,7 @@ func BenchmarkNewProgram(b *testing.B) {
 						CompilerOptions: &opts,
 					},
 				},
-				Host: NewCompilerHost("c:/dev/src", fs, bundled.LibPath(), nil, nil, nil),
+				Host: NewCompilerHost("c:/dev/src", fs, bundled.LibPath(), nil, nil, nil, nil),
 			}
 
 			for b.Loop() {
@@ -616,7 +616,7 @@ func BenchmarkNewProgram(b *testing.B) {
 	b.Run("compiler", func(b *testing.B) {
 		rootPath := tspath.NormalizeSlashes(filepath.Join(repo.TestDataPath(), "fixtures/compiler"))
 		fs := bundled.WrapFS(osvfs.FS())
-		host := NewCompilerHost(rootPath, fs, bundled.LibPath(), nil, nil, nil)
+		host := NewCompilerHost(rootPath, fs, bundled.LibPath(), nil, nil, nil, nil)
 		parsed, errors := tsoptions.GetParsedCommandLineOfConfigFile(tspath.CombinePaths(rootPath, "tsconfig.json"), nil, nil, host, nil)
 		assert.Equal(b, len(errors), 0, "Expected no errors in parsed command line")
 		opts := ProgramOptions{

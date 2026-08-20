@@ -19,6 +19,7 @@ import (
 	"github.com/microsoft/TypeScript/tsc/internal/ls/lsutil"
 	"github.com/microsoft/TypeScript/tsc/internal/lsp/lsproto"
 	"github.com/microsoft/TypeScript/tsc/internal/module"
+	"github.com/microsoft/TypeScript/tsc/internal/pnp"
 	"github.com/microsoft/TypeScript/tsc/internal/project/ata"
 	"github.com/microsoft/TypeScript/tsc/internal/project/dirty"
 	"github.com/microsoft/TypeScript/tsc/internal/project/logging"
@@ -57,6 +58,8 @@ type Snapshot struct {
 	fileSystemOverride bool
 
 	createdPrograms []*Project
+
+	pnpApi *pnp.PnpApi
 }
 
 func (s *Snapshot) contentMapperWatchState() ([]string, *collections.Set[tspath.Path]) {
@@ -99,9 +102,11 @@ func (host *SnapshotHost) newSnapshot(
 		ConfigFileRegistry:                 configFileRegistry,
 		ProjectCollection:                  &ProjectCollection{toPath: host.toPath, openFiles: openFilePaths(overlays)},
 		compilerOptionsForInferredProjects: compilerOptionsForInferredProjects,
-		userPreferences:                    userPreferences,
-		AutoImports:                        autoImports,
-		autoImportsWatch:                   autoImportsWatch,
+
+		userPreferences:  userPreferences,
+		AutoImports:      autoImports,
+		autoImportsWatch: autoImportsWatch,
+		pnpApi:           host.pnpApi,
 	}
 	s.refCount.Store(1)
 	s.converters = lsconv.NewConverters(host.options.PositionEncoding, s.LSPLineMap)
@@ -280,6 +285,10 @@ func (s *Snapshot) FileSystem() vfs.FS {
 // filesystem instead of the session host filesystem.
 func (s *Snapshot) HasFileSystemOverride() bool {
 	return s.fileSystemOverride
+}
+
+func (s *Snapshot) PnpApi() *pnp.PnpApi {
+	return s.pnpApi
 }
 
 func (s *Snapshot) ReadFile(fileName string) (string, bool) {
@@ -519,6 +528,12 @@ func (s *Snapshot) Clone(
 	fs := newSnapshotFSBuilderFromSource(layeredFS, s.fs.cacheFiles, s.fs.cacheDirectories, s.fs.nodeModulesRealpathAliases, store.toPath)
 	change.fileChanges = s.processFileChanges(fs, change.fileChanges, logger, change.contentMapperContributions, s.overlays(), overlays)
 
+	if store.pnpApi != nil && change.fileChanges.InvalidateAll {
+		if err := store.pnpApi.RefreshManifest(); err != nil {
+			logger.Logf("Failed to refresh PnP manifest: %v", err)
+		}
+	}
+
 	compilerOptionsForInferredProjects := s.compilerOptionsForInferredProjects
 	if change.compilerOptionsForInferredProjects != nil {
 		compilerOptionsForInferredProjects = change.compilerOptionsForInferredProjects
@@ -536,6 +551,7 @@ func (s *Snapshot) Clone(
 		newSnapshotID,
 		fs,
 		overlays,
+		store.pnpApi,
 		s.ProjectCollection,
 		s.ConfigFileRegistry,
 		s.ProjectCollection.apiState,
@@ -645,6 +661,7 @@ func (s *Snapshot) Clone(
 		projectCollection,
 		store.parseCache,
 		fs,
+		store.pnpApi,
 		store.options.CurrentDirectory,
 		store.toPath,
 	)

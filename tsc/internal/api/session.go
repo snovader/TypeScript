@@ -37,6 +37,7 @@ import (
 	"github.com/microsoft/TypeScript/tsc/internal/lsp/lsproto"
 	"github.com/microsoft/TypeScript/tsc/internal/module"
 	"github.com/microsoft/TypeScript/tsc/internal/nodebuilder"
+	"github.com/microsoft/TypeScript/tsc/internal/pnp"
 	"github.com/microsoft/TypeScript/tsc/internal/pprof"
 	"github.com/microsoft/TypeScript/tsc/internal/printer"
 	"github.com/microsoft/TypeScript/tsc/internal/project"
@@ -682,6 +683,13 @@ func (s *Session) DefaultLibraryPath() string {
 		return s.projectSession.DefaultLibraryPath()
 	}
 	return s.snapshotHost.DefaultLibraryPath()
+}
+
+func (s *Session) PnpApi() *pnp.PnpApi {
+	if s.projectSession != nil {
+		return s.projectSession.PnpApi()
+	}
+	return s.snapshotHost.PnpApi()
 }
 
 func (s *Session) useCaseSensitiveFileNames() bool {
@@ -1943,6 +1951,7 @@ func (s *apiBuildSystem) ErrorWriter() io.Writer      { return io.Discard }
 func (s *apiBuildSystem) FS() vfs.FS                  { return s.session.snapshotHost.FS() }
 func (s *apiBuildSystem) DefaultLibraryPath() string  { return s.session.DefaultLibraryPath() }
 func (s *apiBuildSystem) GetCurrentDirectory() string { return s.currentDirectory }
+func (s *apiBuildSystem) PnpApi() *pnp.PnpApi         { return s.session.PnpApi() }
 func (s *apiBuildSystem) WriteOutputIsTTY() bool      { return false }
 func (s *apiBuildSystem) GetWidthOfTerminal() int     { return 0 }
 func (s *apiBuildSystem) GetEnvironmentVariable(name string) (string, bool) {

@@ -11,6 +11,7 @@ import (
 	"github.com/microsoft/TypeScript/tsc/internal/core"
 	"github.com/microsoft/TypeScript/tsc/internal/ls/lsutil"
 	"github.com/microsoft/TypeScript/tsc/internal/lsp/lsproto"
+	"github.com/microsoft/TypeScript/tsc/internal/pnp"
 	"github.com/microsoft/TypeScript/tsc/internal/project/logging"
 	"github.com/microsoft/TypeScript/tsc/internal/tspath"
 	"github.com/microsoft/TypeScript/tsc/internal/vfs"
@@ -27,6 +28,7 @@ type SnapshotHost struct {
 	extendedConfigCache     *ExtendedConfigCache
 	programCounter          *programCounter
 	contentMapperHost       contentmapper.Host
+	pnpApi                  *pnp.PnpApi
 
 	snapshotID atomic.Uint64
 }
@@ -98,6 +100,7 @@ func NewSnapshotHost(init *SessionInit) *SnapshotHost {
 		extendedConfigCache:     NewExtendedConfigCache(),
 		programCounter:          &programCounter{},
 		contentMapperHost:       newContentMapperHost(init),
+		pnpApi:                  init.PnpApi,
 	}
 }
 
@@ -192,6 +195,11 @@ func (s *SnapshotHost) FS() vfs.FS {
 
 func (s *SnapshotHost) GetCurrentDirectory() string {
 	return s.options.CurrentDirectory
+}
+
+// PnpApi implements tsoptions.ParseConfigHost
+func (s *SnapshotHost) PnpApi() *pnp.PnpApi {
+	return s.pnpApi
 }
 
 func (s *SnapshotHost) DefaultLibraryPath() string {
