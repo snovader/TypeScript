@@ -2211,5 +2211,13 @@
     "Organize_Imports_95206": "Organize Imports",
     "Remove_Unused_Imports_95207": "Remove Unused Imports",
     "Sort_Imports_95208": "Sort Imports",
-    "JSDoc_comment_95209": "JSDoc comment"
+    "JSDoc_comment_95209": "JSDoc comment",
+    "Your_application_tried_to_access_0_While_this_module_is_usually_interpreted_as_a_Node_builtin_your_r_110001": "Your application tried to access '{0}'. While this module is usually interpreted as a Node builtin, your resolver is running inside a non-Node resolution context where such builtins are ignored. Since '{0}' isn't otherwise declared in your dependencies, this makes the require call ambiguous and unsound.\n\nRequired package: {0}{1}\nRequired by: {2}",
+    "_0_tried_to_access_1_While_this_module_is_usually_interpreted_as_a_Node_builtin_your_resolver_is_run_110002": "{0} tried to access '{1}'. While this module is usually interpreted as a Node builtin, your resolver is running inside a non-Node resolution context where such builtins are ignored. Since '{1}' isn't otherwise declared in {0}'s dependencies, this makes the require call ambiguous and unsound.\n\nRequired package: {1}{2}\nRequired by: {3}",
+    "Your_application_tried_to_access_0_but_it_isn_t_declared_in_your_dependencies_this_makes_the_require_110003": "Your application tried to access '{0}', but it isn't declared in your dependencies; this makes the require call ambiguous and unsound.\n\nRequired package: {0}{1}\nRequired by: {2}",
+    "Your_application_tried_to_access_0_a_peer_dependency_this_isn_t_allowed_as_there_is_no_ancestor_to_s_110004": "Your application tried to access '{0}' (a peer dependency); this isn't allowed as there is no ancestor to satisfy the requirement. Use a devDependency if needed.\n\nRequired package: {0}\nRequired by: {1}",
+    "_0_tried_to_access_1_a_peer_dependency_but_it_isn_t_provided_by_its_ancestors_Slashyour_application__110005": "{0} tried to access '{1}' (a peer dependency) but it isn't provided by its ancestors/your application; this makes the require call ambiguous and unsound.\n\nRequired package: {1}\nRequired by: {2}",
+    "no_package_found_for_path_0_110006": "no package found for path '{0}'",
+    "Empty_specifier_Colon_0_110007": "Empty specifier: '{0}'",
+    "Invalid_specifier_Colon_0_110008": "Invalid specifier: '{0}'"
 }

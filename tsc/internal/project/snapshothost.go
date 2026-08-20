@@ -8,6 +8,7 @@ import (
 	"github.com/microsoft/TypeScript/tsc/internal/contentmapper"
 	"github.com/microsoft/TypeScript/tsc/internal/ls/lsutil"
 	"github.com/microsoft/TypeScript/tsc/internal/lsp/lsproto"
+	"github.com/microsoft/TypeScript/tsc/internal/pnp"
 	"github.com/microsoft/TypeScript/tsc/internal/project/logging"
 	"github.com/microsoft/TypeScript/tsc/internal/tspath"
 	"github.com/microsoft/TypeScript/tsc/internal/vfs"
@@ -24,6 +25,7 @@ type SnapshotHost struct {
 	extendedConfigCache     *ExtendedConfigCache
 	programCounter          *programCounter
 	contentMapperHost       contentmapper.Host
+	pnpApi                  *pnp.PnpApi
 
 	snapshotID atomic.Uint64
 }
@@ -56,6 +58,7 @@ func NewSnapshotHost(init *SessionInit) *SnapshotHost {
 		extendedConfigCache:     NewExtendedConfigCache(),
 		programCounter:          &programCounter{},
 		contentMapperHost:       newContentMapperHost(init),
+		pnpApi:                  init.PnpApi,
 	}
 }
 
