@@ -526,9 +526,12 @@ func (s *Snapshot) Clone(
 	fs := newSnapshotFSBuilderFromSource(layeredFS, s.fs.cacheFiles, s.fs.cacheDirectories, s.fs.nodeModulesRealpathAliases, store.toPath)
 	change.fileChanges = s.processFileChanges(fs, change.fileChanges, logger, change.contentMapperContributions, s.overlays(), overlays)
 
-	if store.pnpApi != nil && change.fileChanges.InvalidateAll {
-		if err := store.pnpApi.RefreshManifest(); err != nil {
+	pnpApi := s.pnpApi
+	if pnpApi != nil && change.fileChanges.InvalidateAll {
+		if newPnpApi, err := pnpApi.RefreshManifest(); err != nil {
 			logger.Logf("Failed to refresh PnP manifest: %v", err)
+		} else {
+			pnpApi = newPnpApi
 		}
 	}
 
@@ -549,7 +552,7 @@ func (s *Snapshot) Clone(
 		newSnapshotID,
 		fs,
 		overlays,
-		store.pnpApi,
+		pnpApi,
 		s.ProjectCollection,
 		s.ConfigFileRegistry,
 		s.ProjectCollection.apiState,
@@ -659,7 +662,7 @@ func (s *Snapshot) Clone(
 		projectCollection,
 		store.parseCache,
 		fs,
-		store.pnpApi,
+		pnpApi,
 		store.options.CurrentDirectory,
 		store.toPath,
 	)
@@ -699,6 +702,7 @@ func (s *Snapshot) Clone(
 		autoImports,
 		autoImportsWatch,
 	)
+	newSnapshot.pnpApi = pnpApi
 	newSnapshot.parentId = s.id
 	newSnapshot.ProjectCollection = projectCollection
 	newSnapshot.ConfigFileRegistry = configFileRegistry
