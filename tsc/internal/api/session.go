@@ -32,6 +32,7 @@ import (
 	"github.com/microsoft/TypeScript/tsc/internal/module"
 	"github.com/microsoft/TypeScript/tsc/internal/nodebuilder"
 	"github.com/microsoft/TypeScript/tsc/internal/parser"
+	"github.com/microsoft/TypeScript/tsc/internal/pnp"
 	"github.com/microsoft/TypeScript/tsc/internal/pprof"
 	"github.com/microsoft/TypeScript/tsc/internal/printer"
 	"github.com/microsoft/TypeScript/tsc/internal/project"
@@ -509,6 +510,10 @@ func (s *Session) SetConnection(conn ipc.Conn) {
 
 func (s *Session) GetCurrentDirectory() string {
 	return s.snapshotHost.GetCurrentDirectory()
+}
+
+func (s *Session) PnpApi() *pnp.PnpApi {
+	return s.snapshotHost.PnpApi()
 }
 
 func (s *Session) FS() vfs.FS {

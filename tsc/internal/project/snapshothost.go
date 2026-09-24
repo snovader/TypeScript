@@ -34,6 +34,10 @@ func (s *SnapshotHost) nextSnapshotID() uint64 {
 	return s.snapshotID.Add(1)
 }
 
+func (s *SnapshotHost) PnpApi() *pnp.PnpApi {
+	return s.pnpApi
+}
+
 func NewSnapshotHost(init *SessionInit) *SnapshotHost {
 	currentDirectory := init.Options.CurrentDirectory
 	useCaseSensitiveFileNames := init.FS.UseCaseSensitiveFileNames()
