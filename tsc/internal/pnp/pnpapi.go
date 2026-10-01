@@ -23,6 +23,7 @@ type PnpApi struct {
 	fs       vfs.FS
 	url      string
 	manifest *PnpManifestData
+	scopes   *pnpScopes
 }
 
 func isNodeJSBuiltin(name string) bool {
@@ -67,8 +68,9 @@ func (p *PnpApi) RefreshManifest() (*PnpApi, error) {
 		return nil, err
 	}
 
-	p.manifest = newData
-	return &PnpApi{fs: p.fs, url: p.url, manifest: newData}, nil
+	refreshed := &PnpApi{fs: p.fs, url: p.url, manifest: newData}
+	refreshed.scopes = &pnpScopes{byPath: map[string]*PnpApi{newData.dirPath: refreshed}}
+	return refreshed, nil
 }
 
 type PnpError struct {
@@ -77,6 +79,7 @@ type PnpError struct {
 }
 
 func (p *PnpApi) ResolveToUnqualified(specifier string, parentPath string) (string, *PnpError) {
+	p = p.ForPath(parentPath)
 	if p.manifest == nil {
 		panic("ResolveToUnqualified called with no PnP manifest available")
 	}
@@ -200,6 +203,7 @@ func (p *PnpApi) GetPackage(locator *Locator) *PackageInfo {
 // ignorePatternData, i.e. it is not managed by PnP and should resolve through the
 // classic algorithm.
 func (p *PnpApi) IsPathIgnored(path string) bool {
+	p = p.ForPath(path)
 	if p.manifest == nil || p.manifest.ignorePatternData == nil || path == "" {
 		return false
 	}
@@ -308,6 +312,7 @@ func (p *PnpApi) ParseBareIdentifier(specifier string) (ident string, modulePath
 }
 
 func (p *PnpApi) GetPnpTypeRoots(currentDirectory string) []string {
+	p = p.ForPath(currentDirectory)
 	if p.manifest == nil {
 		return []string{}
 	}
@@ -340,6 +345,7 @@ func (p *PnpApi) GetPnpTypeRoots(currentDirectory string) []string {
 }
 
 func (p *PnpApi) IsImportable(fromFileName string, toFileName string) bool {
+	p = p.ForPath(fromFileName)
 	fromLocator, errFromLocator := p.FindLocator(fromFileName)
 	toLocator, errToLocator := p.FindLocator(toFileName)
 
@@ -374,6 +380,7 @@ func (p *PnpApi) GetPackageLocationAbsolutePath(packageInfo *PackageInfo) string
 
 // Checks if toFileName is in a module defined in the dependencies of fromFileName
 func (p *PnpApi) IsInPnpModule(toFileName string, fromFileName string) bool {
+	p = p.ForPath(fromFileName)
 	fromLocator, _ := p.FindLocator(fromFileName)
 	toLocator, _ := p.FindLocator(toFileName)
 
