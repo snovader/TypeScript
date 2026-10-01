@@ -772,6 +772,7 @@ func tryGetModuleNameAsPnpPackage(
 	}
 
 	pnpPackageName := ""
+	pnpApi = pnpApi.ForPath(importingSourceFile.FileName())
 	fromLocator, _ := pnpApi.FindLocator(importingSourceFile.FileName())
 	toLocator, _ := pnpApi.FindLocator(pathObj.FileName)
 	parts := GetNodeModulePathParts(pathObj.FileName)

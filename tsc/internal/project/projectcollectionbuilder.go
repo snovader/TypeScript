@@ -1536,7 +1536,7 @@ func (b *ProjectCollectionBuilder) updateProgram(entry dirty.Value[*Project], lo
 					filesChanged = true
 					project.programFilesWatch = project.CloneWatchers()
 					if project.pnpManifestWatch != nil && b.pnpApi != nil {
-						pnpManifestPath := b.pnpApi.GetManifestPath()
+						pnpManifestPath := b.pnpApi.ForPath(project.currentDirectory).GetManifestPath()
 						if pnpManifestPath != "" {
 							project.pnpManifestWatch = project.pnpManifestWatch.Clone(PatternsAndIgnored{
 								patternsInsideWorkspace: []string{pnpManifestPath},
