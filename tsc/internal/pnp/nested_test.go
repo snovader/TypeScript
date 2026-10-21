@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/microsoft/TypeScript/tsc/internal/tspath"
 	"github.com/microsoft/TypeScript/tsc/internal/vfs/vfstest"
 )
 
@@ -37,7 +38,7 @@ func TestNestedPnpResolution(t *testing.T) {
 		"/repo/sdk/.pnp.data.json":       nestedManifest,
 		"/repo/.deps/pkg/index.d.ts":     "export const value: string;",
 		"/repo/sdk/.deps/pkg/index.d.ts": "export const value: number;",
-	}, true)
+	}, tspath.CaseSensitive)
 	api := InitPnpApi(fs, "/repo")
 	for _, root := range []string{"/repo", "/repo/sdk", "/repo"} {
 		resolved, err := api.ResolveToUnqualified("pkg", root+"/source/index.ts")
@@ -67,7 +68,7 @@ func TestNestedPnpRefresh(t *testing.T) {
 		"/repo/.pnp.data.json":     nestedManifest,
 		"/repo/sdk/.pnp.cjs":       "module.exports = {};",
 		"/repo/sdk/.pnp.data.json": nestedManifest,
-	}, true)
+	}, tspath.CaseSensitive)
 	api := InitPnpApi(fs, "/repo")
 	issuer := "/repo/sdk/source/index.ts"
 	api.ResolveToUnqualified("pkg", issuer)

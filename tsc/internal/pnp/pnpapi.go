@@ -169,7 +169,7 @@ func (p *PnpApi) ResolveToUnqualified(specifier string, parentPath string) (stri
 		// it as an absolute path.
 		resolvedPath = tspath.ResolvePath(resolvedPath, "."+modulePath)
 	}
-	return tspath.RemoveTrailingDirectorySeparators(resolvedPath), nil
+	return tspath.RootedDirectoryPathFromAbsolute(resolvedPath).AsString(), nil
 }
 
 func (p *PnpApi) findClosestPnpManifest() (*PnpManifestData, error) {
@@ -177,11 +177,11 @@ func (p *PnpApi) findClosestPnpManifest() (*PnpManifestData, error) {
 
 	for {
 		pnpPath := tspath.CombinePaths(directoryPath, ".pnp.cjs")
-		if p.fs.FileExists(pnpPath) {
+		if p.fs.FileExists(tspath.RootedFilePathFromAbsolute(pnpPath)) {
 			return parseManifestFromPath(p.fs, directoryPath)
 		}
 
-		if tspath.IsDiskPathRoot(directoryPath) {
+		if tspath.GetDirectoryPath(directoryPath) == directoryPath {
 			return nil, errors.New("no PnP manifest found")
 		}
 
@@ -208,7 +208,7 @@ func (p *PnpApi) IsPathIgnored(path string) bool {
 		return false
 	}
 	relativePath := tspath.GetRelativePathFromDirectory(p.manifest.dirPath, path,
-		tspath.ComparePathsOptions{UseCaseSensitiveFileNames: true})
+		tspath.CaseSensitive)
 	return p.manifest.ignorePatternData.MatchString(relativePath)
 }
 
@@ -222,7 +222,7 @@ func (p *PnpApi) FindLocator(parentPath string) (*Locator, *PnpError) {
 	}
 
 	relativePath := tspath.GetRelativePathFromDirectory(p.manifest.dirPath, parentPath,
-		tspath.ComparePathsOptions{UseCaseSensitiveFileNames: true})
+		tspath.CaseSensitive)
 
 	var relativePathWithDot string
 	if strings.HasPrefix(relativePath, "../") {
@@ -375,7 +375,7 @@ func (p *PnpApi) GetPackageLocationAbsolutePath(packageInfo *PackageInfo) string
 	}
 
 	packageLocation := packageInfo.PackageLocation
-	return tspath.RemoveTrailingDirectorySeparators(tspath.ResolvePath(p.manifest.dirPath, packageLocation))
+	return tspath.RootedDirectoryPathFromAbsolute(tspath.ResolvePath(p.manifest.dirPath, packageLocation)).AsString()
 }
 
 // Checks if toFileName is in a module defined in the dependencies of fromFileName
@@ -399,9 +399,12 @@ func (p *PnpApi) IsInPnpModule(toFileName string, fromFileName string) bool {
 	return false
 }
 
-func (p *PnpApi) AppendPnpTypeRoots(nmTypes []string, currentDirectory string, compilerOptions *core.CompilerOptions, nmFromConfig bool) ([]string, bool) {
+func (p *PnpApi) AppendPnpTypeRoots(nmTypes []tspath.RootedDirectoryPath, currentDirectory tspath.RootedDirectoryPath, compilerOptions *core.CompilerOptions, nmFromConfig bool) ([]tspath.RootedDirectoryPath, bool) {
 	baseDir := compilerOptions.GetBaseDirFromOptions(currentDirectory)
-	pnpTypes := p.GetPnpTypeRoots(baseDir)
+	var pnpTypes []tspath.RootedDirectoryPath
+	for _, root := range p.GetPnpTypeRoots(baseDir.AsString()) {
+		pnpTypes = append(pnpTypes, tspath.RootedDirectoryPathFromAbsolute(root))
+	}
 
 	if len(nmTypes) > 0 {
 		return append(nmTypes, pnpTypes...), nmFromConfig

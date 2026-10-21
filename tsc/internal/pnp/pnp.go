@@ -33,7 +33,7 @@ func (p *PnpApi) ForPath(filePath string) *PnpApi {
 	if p.scopes == nil {
 		return p
 	}
-	directoryPath := tspath.GetNormalizedAbsolutePath(filePath, p.manifest.dirPath)
+	directoryPath := tspath.GetNormalizedAbsolutePath(filePath, tspath.RootedDirectoryPathFromAbsolute(p.manifest.dirPath))
 	p.scopes.mu.Lock()
 	defer p.scopes.mu.Unlock()
 
@@ -45,14 +45,14 @@ func (p *PnpApi) ForPath(filePath string) *PnpApi {
 			break
 		}
 		visited = append(visited, directoryPath)
-		if p.fs.FileExists(tspath.CombinePaths(directoryPath, ".pnp.cjs")) {
+		if p.fs.FileExists(tspath.RootedFilePathFromAbsolute(tspath.CombinePaths(directoryPath, ".pnp.cjs"))) {
 			manifest, err := parseManifestFromPath(p.fs, directoryPath)
 			if err == nil {
 				scoped = &PnpApi{fs: p.fs, url: directoryPath, manifest: manifest, scopes: p.scopes}
 			}
 			break
 		}
-		if tspath.IsDiskPathRoot(directoryPath) {
+		if tspath.GetDirectoryPath(directoryPath) == directoryPath {
 			break
 		}
 		directoryPath = tspath.GetDirectoryPath(directoryPath)
@@ -68,4 +68,13 @@ func (p *PnpApi) ForPath(filePath string) *PnpApi {
 
 func IsPnpLoaderFile(path string) bool {
 	return strings.HasSuffix(path, ".pnp.cjs")
+}
+
+// FromHost preserves the host's manifest snapshot when available. Hosts that only
+// expose a filesystem discover PnP from the resolver's base directory.
+func FromHost(host interface{ FS() vfs.FS }, directory tspath.RootedDirectoryPath) *PnpApi {
+	if provider, ok := host.(interface{ PnpApi() *PnpApi }); ok {
+		return provider.PnpApi()
+	}
+	return InitPnpApi(host.FS(), directory.AsString())
 }

@@ -1,6 +1,7 @@
 package fourslash_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/microsoft/TypeScript/tsc/internal/core"
@@ -146,47 +147,63 @@ import { aValue } from 'package-a';
 aValue;
 /**/
 `
-	f, done := fourslash.NewFourslash(t, nil /*capabilities*/, content)
-	defer done()
-	f.VerifyCompletions(t, "", &fourslash.CompletionsExpectedList{
-		UserPreferences: &lsutil.UserPreferences{
-			IncludeCompletionsForModuleExports:    core.TSTrue,
-			IncludeCompletionsForImportStatements: core.TSTrue,
-		},
-		IsIncomplete: false,
-		ItemDefaults: &fourslash.CompletionsExpectedItemDefaults{
-			CommitCharacters: &DefaultCommitCharacters,
-			EditRange:        Ignored,
-		},
-		Items: &fourslash.CompletionsExpectedItems{
-			Includes: []fourslash.CompletionsExpectedItem{
-				// Verify that helperA completion creates an import from 'package-a/subpath'
-				&lsproto.CompletionItem{
-					Label: "helperA",
-					Data: &lsproto.CompletionItemData{
-						AutoImport: &lsproto.AutoImportFix{
-							ModuleSpecifier: "package-a/subpath",
+	for _, variant := range []string{"regular", "alias", "non-node-modules", "alias-non-node-modules"} {
+		t.Run(variant, func(t *testing.T) {
+			t.Parallel()
+			source := content
+			dependencyName := "package-a"
+			if strings.Contains(variant, "alias") {
+				dependencyName = "alias-a"
+				source = strings.ReplaceAll(source, `["package-a", "npm:1.0.0"]`, `["alias-a", ["package-a", "npm:1.0.0"]]`)
+				source = strings.ReplaceAll(source, `"package-a": "npm:1.0.0"`, `"alias-a": "npm:package-a@1.0.0"`)
+				source = strings.ReplaceAll(source, "from 'package-a'", "from 'alias-a'")
+			}
+			if strings.Contains(variant, "non-node-modules") {
+				source = strings.ReplaceAll(source, "/node_modules/", "/packages/")
+			}
+			f, done := fourslash.NewFourslash(t, nil /*capabilities*/, source)
+			defer done()
+			f.VerifyCompletions(t, "", &fourslash.CompletionsExpectedList{
+				UserPreferences: &lsutil.UserPreferences{
+					IncludeCompletionsForModuleExports:    core.TSTrue,
+					IncludeCompletionsForImportStatements: core.TSTrue,
+				},
+				IsIncomplete: false,
+				ItemDefaults: &fourslash.CompletionsExpectedItemDefaults{
+					CommitCharacters: &DefaultCommitCharacters,
+					EditRange:        Ignored,
+				},
+				Items: &fourslash.CompletionsExpectedItems{
+					Includes: []fourslash.CompletionsExpectedItem{
+						// Verify that helperA completion creates an import from 'package-a/subpath'
+						&lsproto.CompletionItem{
+							Label: "helperA",
+							Data: &lsproto.CompletionItemData{
+								AutoImport: &lsproto.AutoImportFix{
+									ModuleSpecifier: dependencyName + "/subpath",
+								},
+							},
+							Kind:                new(lsproto.CompletionItemKindFunction),
+							AdditionalTextEdits: fourslash.AnyTextEdits,
+							SortText:            new(string(ls.SortTextAutoImportSuggestions)),
+						},
+						// Verify that workspaceHelper completion creates an import from 'workspace-lib'
+						&lsproto.CompletionItem{
+							Label: "workspaceHelper",
+							Data: &lsproto.CompletionItemData{
+								AutoImport: &lsproto.AutoImportFix{
+									ModuleSpecifier: "workspace-lib",
+								},
+							},
+							Kind:                new(lsproto.CompletionItemKindFunction),
+							AdditionalTextEdits: fourslash.AnyTextEdits,
+							SortText:            new(string(ls.SortTextAutoImportSuggestions)),
 						},
 					},
-					Kind:                new(lsproto.CompletionItemKindFunction),
-					AdditionalTextEdits: fourslash.AnyTextEdits,
-					SortText:            new(string(ls.SortTextAutoImportSuggestions)),
+					// `bValue` can appear in the completion list since it's mentioned in a unresolved import, but `helperB` should not
+					Excludes: []string{"helperB"},
 				},
-				// Verify that workspaceHelper completion creates an import from 'workspace-lib'
-				&lsproto.CompletionItem{
-					Label: "workspaceHelper",
-					Data: &lsproto.CompletionItemData{
-						AutoImport: &lsproto.AutoImportFix{
-							ModuleSpecifier: "workspace-lib",
-						},
-					},
-					Kind:                new(lsproto.CompletionItemKindFunction),
-					AdditionalTextEdits: fourslash.AnyTextEdits,
-					SortText:            new(string(ls.SortTextAutoImportSuggestions)),
-				},
-			},
-			// `bValue` can appear in the completion list since it's mentioned in a unresolved import, but `helperB` should not
-			Excludes: []string{"helperB"},
-		},
-	})
+			})
+		})
+	}
 }
