@@ -15,7 +15,6 @@ import (
 
 func TestPnpAutoImportCompletion1(t *testing.T) {
 	t.Parallel()
-	defer testutil.RecoverAndFail(t, "Panic on fourslash test")
 	const content = `
 // @filename: /.pnp.cjs
 module.exports = {};
@@ -150,6 +149,7 @@ aValue;
 	for _, variant := range []string{"regular", "alias", "non-node-modules", "alias-non-node-modules"} {
 		t.Run(variant, func(t *testing.T) {
 			t.Parallel()
+			defer testutil.RecoverAndFail(t, "Panic on fourslash test")
 			source := content
 			dependencyName := "package-a"
 			if strings.Contains(variant, "alias") {
@@ -162,7 +162,7 @@ aValue;
 				source = strings.ReplaceAll(source, "/node_modules/", "/packages/")
 			}
 			f, done := fourslash.NewFourslash(t, nil /*capabilities*/, source)
-			defer done()
+			t.Cleanup(done)
 			f.VerifyCompletions(t, "", &fourslash.CompletionsExpectedList{
 				UserPreferences: &lsutil.UserPreferences{
 					IncludeCompletionsForModuleExports:    core.TSTrue,

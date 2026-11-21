@@ -754,7 +754,7 @@ func (b *registryBuilder) markBucketsDirty(change RegistryChange, logger *loggin
 						// Look up the package name for granular updates
 						packageName := entry.Value().Paths[path]
 						entry.Change(func(bucket *RegistryBucket) { bucket.markNodeModulesDirty(packageName) })
-						if !entry.Value().state.multipleFilesDirty {
+						if entry.Value().state.multipleFilesDirty {
 							delete(cleanNodeModulesBuckets, dirPath)
 						}
 					}
@@ -766,7 +766,7 @@ func (b *registryBuilder) markBucketsDirty(change RegistryChange, logger *loggin
 						if packageName, ok := entry.Value().Paths[path]; ok {
 							// Use the package name for granular updates
 							entry.Change(func(bucket *RegistryBucket) { bucket.markNodeModulesDirty(packageName) })
-							if !entry.Value().state.multipleFilesDirty {
+							if entry.Value().state.multipleFilesDirty {
 								delete(cleanNodeModulesBuckets, bucketDirPath)
 							}
 						}
@@ -782,7 +782,7 @@ func (b *registryBuilder) markBucketsDirty(change RegistryChange, logger *loggin
 				if _, ok := entry.Value().Paths[path]; ok {
 					// Project buckets don't use package-based granular updates
 					entry.Change(func(bucket *RegistryBucket) { bucket.markProjectFileDirty(path) })
-					if !entry.Value().state.multipleFilesDirty {
+					if entry.Value().state.multipleFilesDirty {
 						delete(cleanProjectBuckets, projectDirPath)
 					}
 				}

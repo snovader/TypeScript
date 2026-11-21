@@ -51,8 +51,8 @@ func (p *fakeProgram) CommonSourceDirectory() tspath.RootedDirectoryPath {
 	panic("unimplemented")
 }
 
-func (p *fakeProgram) ContentMapperExtensions() []string {
-	return nil
+func (p *fakeProgram) ContentMapperExtensionForFileName(tspath.RootedFilePath) string {
+	return ""
 }
 
 func (p *fakeProgram) ContentMapperExtensionRewrites() []tspath.ExtensionRewrite {
@@ -132,7 +132,7 @@ func (p *fakeProgram) SourceFiles() []*ast.SourceFile {
 }
 
 func (p *fakeProgram) BindSourceFiles() {
-	wg := core.NewWorkGroup(p.singleThreaded)
+	wg := core.NewWorkGroup(core.WorkGroupConcurrency(p.singleThreaded))
 	for _, file := range p.files {
 		if !file.IsBound() {
 			wg.Queue(func() {

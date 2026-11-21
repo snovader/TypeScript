@@ -59,10 +59,11 @@ const (
 	ExitStatusInvalidProject_OutputsSkipped        ExitStatus = 3
 	ExitStatusProjectReferenceCycle_OutputsSkipped ExitStatus = 4
 	ExitStatusNotImplemented                       ExitStatus = 5
+	ExitStatusCancelled                            ExitStatus = 6
 )
 
 type Watcher interface {
-	DoCycle()
+	DoCycle(ctx context.Context)
 }
 
 type CommandLineResult struct {
