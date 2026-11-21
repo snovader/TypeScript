@@ -21,6 +21,9 @@ func InitPnpApi(fs vfs.FS, filePath string) *PnpApi {
 	return nil
 }
 
+// The folder that holds an installation's virtual packages, as a path segment
+const virtualSegment = "/__virtual__/"
+
 type pnpScopes struct {
 	mu     sync.Mutex
 	byPath map[string]*PnpApi
@@ -34,6 +37,14 @@ func (p *PnpApi) ForPath(filePath string) *PnpApi {
 		return p
 	}
 	directoryPath := tspath.GetNormalizedAbsolutePath(filePath, tspath.RootedDirectoryPathFromAbsolute(p.manifest.dirPath))
+	// A virtual path belongs to the installation that holds its __virtual__
+	// folder. Its segments name a location relative to that folder, so a PnP
+	// filesystem maps them onto real directories, such as the installation's
+	// own root for a virtual workspace or portal, where a manifest would be
+	// taken for a nested installation.
+	if owner, _, found := strings.Cut(directoryPath, virtualSegment); found {
+		directoryPath = owner
+	}
 	p.scopes.mu.Lock()
 	defer p.scopes.mu.Unlock()
 

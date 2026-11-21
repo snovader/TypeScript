@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/microsoft/TypeScript/tsc/internal/tspath"
+	"github.com/microsoft/TypeScript/tsc/internal/vfs/pnpvfs"
 	"github.com/microsoft/TypeScript/tsc/internal/vfs/vfstest"
 )
 
@@ -86,5 +87,54 @@ func TestNestedPnpRefresh(t *testing.T) {
 	resolved, resolveErr = api.ResolveToUnqualified("pkg", issuer)
 	if resolveErr != nil || resolved != "/repo/sdk/.deps/pkg" {
 		t.Fatalf("previous snapshot's resolution changed: got %q, %v", resolved, resolveErr)
+	}
+}
+
+const virtualPortalManifest = `{
+  "dependencyTreeRoots": [{"name": "project", "reference": "workspace:."}],
+  "enableTopLevelFallback": false,
+  "fallbackPool": [],
+  "fallbackExclusionList": [],
+  "packageRegistryData": [
+    ["project", [["workspace:.", {
+      "packageLocation": "./",
+      "packageDependencies": [["portal", "virtual:abc#portal:portals/portal"], ["pkg", "npm:1.0.0"]]
+    }]]],
+    ["portal", [
+      ["portal:portals/portal", {
+        "packageLocation": "./portals/portal/",
+        "packageDependencies": []
+      }],
+      ["virtual:abc#portal:portals/portal", {
+        "packageLocation": "./.yarn/__virtual__/portal-virtual-abc/1/portals/portal/",
+        "packageDependencies": [["pkg", "npm:1.0.0"]],
+        "packagePeers": ["pkg"]
+      }]
+    ]],
+    ["pkg", [["npm:1.0.0", {
+      "packageLocation": "./.deps/pkg/",
+      "packageDependencies": []
+    }]]]
+  ]
+}`
+
+// A PnP filesystem maps the virtual path of a portal onto the installation's
+// root, where the manifest is, which isn't that of a nested installation.
+func TestVirtualPortalPnpResolution(t *testing.T) {
+	t.Parallel()
+	fs := pnpvfs.From(vfstest.FromMap(map[string]string{
+		"/repo/.pnp.cjs":                       "module.exports = {};",
+		"/repo/.pnp.data.json":                 virtualPortalManifest,
+		"/repo/portals/portal/source/index.ts": "export * from 'pkg';",
+		"/repo/.deps/pkg/index.d.ts":           "export const value: string;",
+	}, tspath.CaseSensitive))
+	api := InitPnpApi(fs, "/repo")
+	issuer := "/repo/.yarn/__virtual__/portal-virtual-abc/1/portals/portal/source/index.ts"
+	if manifest := api.ForPath(issuer).GetManifestPath(); manifest != "/repo/.pnp.cjs" {
+		t.Fatalf("manifest of a virtual portal: got %q", manifest)
+	}
+	resolved, err := api.ResolveToUnqualified("pkg", issuer)
+	if err != nil || resolved != "/repo/.deps/pkg" {
+		t.Fatalf("resolution from a virtual portal: got %q, %v", resolved, err)
 	}
 }
